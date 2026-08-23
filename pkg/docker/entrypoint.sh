@@ -254,7 +254,15 @@ if [[ ! -f /var/lib/pgadmin/pgadmin4.db && $external_config_db_exists == "False"
     fi
     email_config="{'CHECK_EMAIL_DELIVERABILITY': $CHECK_EMAIL_DELIVERABILITY, 'ALLOW_SPECIAL_EMAIL_DOMAINS': $ALLOW_SPECIAL_EMAIL_DOMAINS, 'GLOBALLY_DELIVERABLE': $GLOBALLY_DELIVERABLE}"
     echo "email config is $email_config"
-    is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "from validation_utils import validate_email; val = validate_email('$PGADMIN_DEFAULT_EMAIL', $email_config); print(val)")
+    is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "
+import ast, sys
+from validation_utils import validate_email
+try:
+    email_config = ast.literal_eval(sys.argv[1])
+except (ValueError, SyntaxError):
+    sys.exit(f'Failed to evaluate email validation config: {sys.argv[1]}')
+print(validate_email(sys.argv[2], email_config))
+" "$email_config" "$PGADMIN_DEFAULT_EMAIL") || exit 1
     if [[ $is_valid_email == *False* ]]; then
         echo "'$PGADMIN_DEFAULT_EMAIL' does not appear to be a valid email address. Please reset the PGADMIN_DEFAULT_EMAIL environment variable and try again."
         echo "Validation output: $is_valid_email"
