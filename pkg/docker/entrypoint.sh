@@ -31,11 +31,9 @@ fi
 
 if (( EUID == 0 )); then
     # Ensure a group with the target GID exists
-    if ! getent group "$PGID" &>/dev/null; then
-        if ! addgroup -g "$PGID" pggroup; then
-            echo "ERROR: Failed to create group with GID=$PGID"
-            exit 1
-        fi
+    if ! getent group "$PGID" &>/dev/null && ! addgroup -g "$PGID" pggroup; then
+        echo "ERROR: Failed to create group with GID=$PGID"
+        exit 1
     fi
 
     # Reassign the pgadmin user to the desired UID/GID
@@ -66,12 +64,8 @@ else
     SU_EXEC=""
 
     # Fixup the passwd file, in case we're on OpenShift
-    if ! whoami &>/dev/null; then
-        if (( EUID != 5050 )); then
-            if [[ -w /etc/passwd ]]; then
-                echo "${USER_NAME:-pgadminr}:x:${EUID}:0:${USER_NAME:-pgadminr} user:${HOME}:/sbin/nologin" >>/etc/passwd
-            fi
-        fi
+    if ! whoami &>/dev/null && (( EUID != 5050 )) && [[ -w /etc/passwd ]]; then
+        echo "${USER_NAME:-pgadminr}:x:${EUID}:0:${USER_NAME:-pgadminr} user:${HOME}:/sbin/nologin" >>/etc/passwd
     fi
 fi
 
@@ -332,12 +326,10 @@ TIMEOUT=$(cd /pgadmin4 && $SU_EXEC /venv/bin/python3 -c 'import config; print(co
 
 if [[ -n $PGADMIN_ENABLE_SOCK ]]; then
     BIND_ADDRESS="unix:/run/pgadmin/pgadmin.sock"
+elif [[ -n $PGADMIN_ENABLE_TLS ]]; then
+    BIND_ADDRESS="${PGADMIN_LISTEN_ADDRESS:-[::]}:${PGADMIN_LISTEN_PORT:-443}"
 else
-    if [[ -n $PGADMIN_ENABLE_TLS ]]; then
-        BIND_ADDRESS="${PGADMIN_LISTEN_ADDRESS:-[::]}:${PGADMIN_LISTEN_PORT:-443}"
-    else
-        BIND_ADDRESS="${PGADMIN_LISTEN_ADDRESS:-[::]}:${PGADMIN_LISTEN_PORT:-80}"
-    fi
+    BIND_ADDRESS="${PGADMIN_LISTEN_ADDRESS:-[::]}:${PGADMIN_LISTEN_PORT:-80}"
 fi
 
 if [[ -n $PGADMIN_ENABLE_TLS ]]; then
