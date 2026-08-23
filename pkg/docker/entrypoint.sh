@@ -126,30 +126,30 @@ fi
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
 #  "$XYZ_DB_PASSWORD" from a file, for Docker's secrets feature)
 function file_env() {
-	local var="$1"
-	local fileVar="${var}_FILE"
-	local def="${2:-}"
-	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
-		exit 1
-	fi
-	local val="$def"
-	if [ "${!var:-}" ]; then
-		val="${!var}"
-	elif [ "${!fileVar:-}" ] && [ ! -r "${!fileVar}" ]; then
-		printf >&2 'error: %s is set to "%s" but the file does not exist or is not readable\n' \
-			"$fileVar" "${!fileVar}"
-		exit 1
-	elif [ "${!fileVar:-}" ]; then
-		val="$(< "${!fileVar}")"
-	fi
-	export "$var"="$val"
-	unset "$fileVar"
+    local var="$1"
+    local fileVar="${var}_FILE"
+    local def="${2:-}"
+    if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
+        printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
+        exit 1
+    fi
+    local val="$def"
+    if [ "${!var:-}" ]; then
+        val="${!var}"
+    elif [ "${!fileVar:-}" ] && [ ! -r "${!fileVar}" ]; then
+        printf >&2 'error: %s is set to "%s" but the file does not exist or is not readable\n' \
+            "$fileVar" "${!fileVar}"
+        exit 1
+    elif [ "${!fileVar:-}" ]; then
+        val="$(< "${!fileVar}")"
+    fi
+    export "$var"="$val"
+    unset "$fileVar"
 }
 
 # Set values for config variables that can be passed using secrets
 if [ -n "${PGADMIN_CONFIG_CONFIG_DATABASE_URI_FILE}" ]; then
-  file_env PGADMIN_CONFIG_CONFIG_DATABASE_URI
+    file_env PGADMIN_CONFIG_CONFIG_DATABASE_URI
 fi
 file_env PGADMIN_DEFAULT_PASSWORD
 
@@ -259,14 +259,14 @@ if [ ! -f /var/lib/pgadmin/pgadmin4.db ] && [ "${external_config_db_exists}" = "
     if [ -n "${PGADMIN_CONFIG_GLOBALLY_DELIVERABLE}" ]; then
         GLOBALLY_DELIVERABLE=${PGADMIN_CONFIG_GLOBALLY_DELIVERABLE}
     fi
-     email_config="{'CHECK_EMAIL_DELIVERABILITY': ${CHECK_EMAIL_DELIVERABILITY}, 'ALLOW_SPECIAL_EMAIL_DOMAINS': ${ALLOW_SPECIAL_EMAIL_DOMAINS}, 'GLOBALLY_DELIVERABLE': ${GLOBALLY_DELIVERABLE}}"
-     echo "email config is ${email_config}"
-     is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "from validation_utils import validate_email; val = validate_email('${PGADMIN_DEFAULT_EMAIL}', ${email_config}); print(val)")
-     if echo "${is_valid_email}" | grep "False" > /dev/null; then
-         echo "'${PGADMIN_DEFAULT_EMAIL}' does not appear to be a valid email address. Please reset the PGADMIN_DEFAULT_EMAIL environment variable and try again."
-         echo "Validation output: ${is_valid_email}"
-         exit 1
-     fi
+    email_config="{'CHECK_EMAIL_DELIVERABILITY': ${CHECK_EMAIL_DELIVERABILITY}, 'ALLOW_SPECIAL_EMAIL_DOMAINS': ${ALLOW_SPECIAL_EMAIL_DOMAINS}, 'GLOBALLY_DELIVERABLE': ${GLOBALLY_DELIVERABLE}}"
+    echo "email config is ${email_config}"
+    is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "from validation_utils import validate_email; val = validate_email('${PGADMIN_DEFAULT_EMAIL}', ${email_config}); print(val)")
+    if echo "${is_valid_email}" | grep "False" > /dev/null; then
+        echo "'${PGADMIN_DEFAULT_EMAIL}' does not appear to be a valid email address. Please reset the PGADMIN_DEFAULT_EMAIL environment variable and try again."
+        echo "Validation output: ${is_valid_email}"
+        exit 1
+    fi
     # Switch back to root directory for further process
     cd /pgadmin4
 
