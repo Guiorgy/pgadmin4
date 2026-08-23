@@ -296,7 +296,7 @@ if [[ ! -f /var/lib/pgadmin/pgadmin4.db && $external_config_db_exists == "False"
                 chown "$PUID:$PGID" /var/lib/pgadmin/.pgpass
             fi
         else
-            PGADMIN_USER_CONFIG_DIR=$(echo "$PGADMIN_DEFAULT_EMAIL" | sed 's/@/_/g')
+            PGADMIN_USER_CONFIG_DIR="${PGADMIN_DEFAULT_EMAIL//@/_}"
             mkdir -p "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR"
             cp "$PGPASS_FILE" "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR/.pgpass"
             chmod 600 "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR/.pgpass"
