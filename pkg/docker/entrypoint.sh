@@ -99,7 +99,7 @@ fi
 
 if (( restricted == 0 )); then
     cap_bnd=$(awk '/^CapBnd:/ { print $2 }' /proc/self/status 2>/dev/null)
-    if [[ -n $cap_bnd ]] && (( (0x${cap_bnd} & 0x400) == 0 )); then
+    if [[ -n $cap_bnd ]] && (( (0x$cap_bnd & 0x400) == 0 )); then
         restricted=1
     fi
 fi
@@ -112,7 +112,7 @@ if (( restricted == 1 )) || [[ ! -x /venv/bin/python3-cap ]]; then
         else
             export PGADMIN_LISTEN_PORT=8080
         fi
-        echo "Restricted security context detected; defaulting PGADMIN_LISTEN_PORT to ${PGADMIN_LISTEN_PORT}."
+        echo "Restricted security context detected; defaulting PGADMIN_LISTEN_PORT to $PGADMIN_LISTEN_PORT."
     fi
 fi
 
@@ -154,7 +154,7 @@ export CONFIG_DISTRO_FILE_PATH="${PGADMIN_CUSTOM_CONFIG_DISTRO_FILE:-/pgadmin4/c
 # Only update the file on first launch. The empty file is created only in default path during the
 # container build so it can have the required ownership.
 if [[ ! -e $CONFIG_DISTRO_FILE_PATH || "$(wc -m "$CONFIG_DISTRO_FILE_PATH" 2>/dev/null | awk '{ print $1 }')" == 0 ]]; then
-    cat <<EOF >"${CONFIG_DISTRO_FILE_PATH}"
+    cat <<EOF >"$CONFIG_DISTRO_FILE_PATH"
 CA_FILE = '/etc/ssl/certs/ca-certificates.crt'
 LOG_FILE = '/dev/null'
 HELP_PATH = '../../docs'
@@ -179,12 +179,12 @@ EOF
             true)  val="True" ;;
             false) val="False" ;;
         esac
-        echo "${var#PGADMIN_CONFIG_} = $val" >>"${CONFIG_DISTRO_FILE_PATH}"
+        echo "${var#PGADMIN_CONFIG_} = $val" >>"$CONFIG_DISTRO_FILE_PATH"
     done
 
     # If running as root with custom config distro path, fix ownership
     if (( EUID == 0 )) && [[ $CONFIG_DISTRO_FILE_PATH != "/pgadmin4/config_distro.py" ]]; then
-        chown "$PUID:$PGID" "${CONFIG_DISTRO_FILE_PATH}"
+        chown "$PUID:$PGID" "$CONFIG_DISTRO_FILE_PATH"
     fi
 fi
 
@@ -227,9 +227,9 @@ function load_server_json_file() {
         # When running in Desktop mode, no user is created
         # so we have to import servers anonymously
         if [[ $PGADMIN_CONFIG_SERVER_MODE == "False" ]]; then
-            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py load-servers "${PGADMIN_SERVER_JSON_FILE}" ${EXTRA_ARGS}
+            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py load-servers "$PGADMIN_SERVER_JSON_FILE" $EXTRA_ARGS
         else
-            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py load-servers "${PGADMIN_SERVER_JSON_FILE}" --user "${PGADMIN_DEFAULT_EMAIL}" ${EXTRA_ARGS}
+            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py load-servers "$PGADMIN_SERVER_JSON_FILE" --user "$PGADMIN_DEFAULT_EMAIL" $EXTRA_ARGS
         fi
     fi
 }
@@ -243,22 +243,22 @@ if [[ ! -f /var/lib/pgadmin/pgadmin4.db && $external_config_db_exists == "False"
     # Validate PGADMIN_DEFAULT_EMAIL
     CHECK_EMAIL_DELIVERABILITY="False"
     if [[ -n $PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY ]]; then
-        CHECK_EMAIL_DELIVERABILITY=${PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY}
+        CHECK_EMAIL_DELIVERABILITY=$PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY
     fi
     ALLOW_SPECIAL_EMAIL_DOMAINS="[]"
     if [[ -n $PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS ]]; then
-        ALLOW_SPECIAL_EMAIL_DOMAINS=${PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS}
+        ALLOW_SPECIAL_EMAIL_DOMAINS=$PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS
     fi
     GLOBALLY_DELIVERABLE="True"
     if [[ -n $PGADMIN_CONFIG_GLOBALLY_DELIVERABLE ]]; then
-        GLOBALLY_DELIVERABLE=${PGADMIN_CONFIG_GLOBALLY_DELIVERABLE}
+        GLOBALLY_DELIVERABLE=$PGADMIN_CONFIG_GLOBALLY_DELIVERABLE
     fi
-    email_config="{'CHECK_EMAIL_DELIVERABILITY': ${CHECK_EMAIL_DELIVERABILITY}, 'ALLOW_SPECIAL_EMAIL_DOMAINS': ${ALLOW_SPECIAL_EMAIL_DOMAINS}, 'GLOBALLY_DELIVERABLE': ${GLOBALLY_DELIVERABLE}}"
-    echo "email config is ${email_config}"
-    is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "from validation_utils import validate_email; val = validate_email('${PGADMIN_DEFAULT_EMAIL}', ${email_config}); print(val)")
+    email_config="{'CHECK_EMAIL_DELIVERABILITY': $CHECK_EMAIL_DELIVERABILITY, 'ALLOW_SPECIAL_EMAIL_DOMAINS': $ALLOW_SPECIAL_EMAIL_DOMAINS, 'GLOBALLY_DELIVERABLE': $GLOBALLY_DELIVERABLE}"
+    echo "email config is $email_config"
+    is_valid_email=$(cd /pgadmin4/pgadmin/utils && $SU_EXEC /venv/bin/python3 -c "from validation_utils import validate_email; val = validate_email('$PGADMIN_DEFAULT_EMAIL', $email_config); print(val)")
     if [[ $is_valid_email == *False* ]]; then
-        echo "'${PGADMIN_DEFAULT_EMAIL}' does not appear to be a valid email address. Please reset the PGADMIN_DEFAULT_EMAIL environment variable and try again."
-        echo "Validation output: ${is_valid_email}"
+        echo "'$PGADMIN_DEFAULT_EMAIL' does not appear to be a valid email address. Please reset the PGADMIN_DEFAULT_EMAIL environment variable and try again."
+        echo "Validation output: $is_valid_email"
         exit 1
     fi
     # Switch back to root directory for further process
@@ -266,8 +266,8 @@ if [[ ! -f /var/lib/pgadmin/pgadmin4.db && $external_config_db_exists == "False"
 
     # Set the default username and password in a
     # backwards compatible way
-    export PGADMIN_SETUP_EMAIL="${PGADMIN_DEFAULT_EMAIL}"
-    export PGADMIN_SETUP_PASSWORD="${PGADMIN_DEFAULT_PASSWORD}"
+    export PGADMIN_SETUP_EMAIL="$PGADMIN_DEFAULT_EMAIL"
+    export PGADMIN_SETUP_PASSWORD="$PGADMIN_DEFAULT_PASSWORD"
 
     # Initialize DB before starting Gunicorn
     # Importing pgadmin4 (from this script) is enough
@@ -282,28 +282,28 @@ if [[ ! -f /var/lib/pgadmin/pgadmin4.db && $external_config_db_exists == "False"
     if [[ -f $PGADMIN_PREFERENCES_JSON_FILE ]]; then
         if [[ $PGADMIN_CONFIG_SERVER_MODE == "False" ]]; then
             DESKTOP_USER=$(cd /pgadmin4 && $SU_EXEC /venv/bin/python3 -c 'import config; print(config.DESKTOP_USER)')
-            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py set-prefs "${DESKTOP_USER}" --input-file "${PGADMIN_PREFERENCES_JSON_FILE}"
+            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py set-prefs "$DESKTOP_USER" --input-file "$PGADMIN_PREFERENCES_JSON_FILE"
         else
-            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py set-prefs "${PGADMIN_DEFAULT_EMAIL}" --input-file "${PGADMIN_PREFERENCES_JSON_FILE}"
+            $SU_EXEC /venv/bin/python3 /pgadmin4/setup.py set-prefs "$PGADMIN_DEFAULT_EMAIL" --input-file "$PGADMIN_PREFERENCES_JSON_FILE"
         fi
     fi
     # Copy the pgpass file passed using secrets
     if [[ -n $PGPASS_FILE && -f $PGPASS_FILE ]]; then
         if [[ $PGADMIN_CONFIG_SERVER_MODE == "False" ]]; then
-            cp "${PGPASS_FILE}" /var/lib/pgadmin/.pgpass
+            cp "$PGPASS_FILE" /var/lib/pgadmin/.pgpass
             chmod 600 /var/lib/pgadmin/.pgpass
             # Fix ownership when running as root
             if (( EUID == 0 )); then
                 chown "$PUID:$PGID" /var/lib/pgadmin/.pgpass
             fi
         else
-            PGADMIN_USER_CONFIG_DIR=$(echo "${PGADMIN_DEFAULT_EMAIL}" | sed 's/@/_/g')
-            mkdir -p "/var/lib/pgadmin/storage/${PGADMIN_USER_CONFIG_DIR}"
-            cp "${PGPASS_FILE}" "/var/lib/pgadmin/storage/${PGADMIN_USER_CONFIG_DIR}/.pgpass"
-            chmod 600 "/var/lib/pgadmin/storage/${PGADMIN_USER_CONFIG_DIR}/.pgpass"
+            PGADMIN_USER_CONFIG_DIR=$(echo "$PGADMIN_DEFAULT_EMAIL" | sed 's/@/_/g')
+            mkdir -p "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR"
+            cp "$PGPASS_FILE" "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR/.pgpass"
+            chmod 600 "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR/.pgpass"
             # Fix ownership when running as root
             if (( EUID == 0 )); then
-                chown -R "$PUID:$PGID" "/var/lib/pgadmin/storage/${PGADMIN_USER_CONFIG_DIR}"
+                chown -R "$PUID:$PGID" "/var/lib/pgadmin/storage/$PGADMIN_USER_CONFIG_DIR"
             fi
         fi
     fi
@@ -333,7 +333,7 @@ else
 fi
 
 if [[ -n $PGADMIN_ENABLE_TLS ]]; then
-    exec $SU_EXEC "${PYTHON_BIN}" /venv/bin/gunicorn --limit-request-line "${GUNICORN_LIMIT_REQUEST_LINE:-8190}" --timeout "${TIMEOUT}" --bind "${BIND_ADDRESS}" -w 1 --threads "${GUNICORN_THREADS:-25}" --access-logfile "${GUNICORN_ACCESS_LOGFILE:--}" --keyfile /certs/server.key --certfile /certs/server.cert -c gunicorn_config.py run_pgadmin:app
+    exec $SU_EXEC "$PYTHON_BIN" /venv/bin/gunicorn --limit-request-line "${GUNICORN_LIMIT_REQUEST_LINE:-8190}" --timeout "$TIMEOUT" --bind "$BIND_ADDRESS" -w 1 --threads "${GUNICORN_THREADS:-25}" --access-logfile "${GUNICORN_ACCESS_LOGFILE:--}" --keyfile /certs/server.key --certfile /certs/server.cert -c gunicorn_config.py run_pgadmin:app
 else
-    exec $SU_EXEC "${PYTHON_BIN}" /venv/bin/gunicorn --limit-request-line "${GUNICORN_LIMIT_REQUEST_LINE:-8190}" --limit-request-fields "${GUNICORN_LIMIT_REQUEST_FIELDS:-100}" --limit-request-field_size "${GUNICORN_LIMIT_REQUEST_FIELD_SIZE:-8190}" --timeout "${TIMEOUT}" --bind "${BIND_ADDRESS}" -w 1 --threads "${GUNICORN_THREADS:-25}" --access-logfile "${GUNICORN_ACCESS_LOGFILE:--}" -c gunicorn_config.py run_pgadmin:app
+    exec $SU_EXEC "$PYTHON_BIN" /venv/bin/gunicorn --limit-request-line "${GUNICORN_LIMIT_REQUEST_LINE:-8190}" --limit-request-fields "${GUNICORN_LIMIT_REQUEST_FIELDS:-100}" --limit-request-field_size "${GUNICORN_LIMIT_REQUEST_FIELD_SIZE:-8190}" --timeout "$TIMEOUT" --bind "$BIND_ADDRESS" -w 1 --threads "${GUNICORN_THREADS:-25}" --access-logfile "${GUNICORN_ACCESS_LOGFILE:--}" -c gunicorn_config.py run_pgadmin:app
 fi
