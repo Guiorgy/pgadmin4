@@ -169,16 +169,15 @@ DEFAULT_BINARY_PATHS = {
 }
 EOF
 
-    # This is a bit kludgy, but necessary as the container uses BusyBox/ash as
-    # it's shell and not bash which would allow a much cleaner implementation
-    for var in $(env | grep "^PGADMIN_CONFIG_" | cut -d "=" -f 1); do
+    # Iterate over PGADMIN_CONFIG_* environment variables and writes them to the config file
+    for var in "${!PGADMIN_CONFIG_@}"; do
         # Get the raw value
-        val=$(eval "echo \"\$$var\"")
+        val="${!var}"
         # This normalization step is what makes 'true', 'True'
-        case "$(echo "$val" | tr '[:upper:]' '[:lower:]')" in
-            true)  val="True" ;;
-            false) val="False" ;;
-        esac
+        if [[ "${val,,}" =~ ^(true|false)$ ]]; then
+            val="${val,,}"
+            val="${val^}"
+        fi
         echo "${var#PGADMIN_CONFIG_} = $val" >>"$CONFIG_DISTRO_FILE_PATH"
     done
 
